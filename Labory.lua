@@ -1,354 +1,365 @@
--- UILibrary 4.0
--- Sistema completo com múltiplos componentes e layout otimizado
+-- Biblioteca de Interface 5.0
+-- Sistema modular em português com componentes flexíveis
 
-local UILibrary = {
-    Themes = {},
-    Windows = {},
-    Components = {}
+local BibliotecaUI = {
+    Temas = {},
+    Janelas = {},
+    Componentes = {}
 }
 
---#region Engine Core
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+--#region Núcleo Principal
+local ServicoTween = game:GetService("TweenService")
+local ServicoEntrada = game:GetService("UserInputService")
+local ServicoExecucao = game:GetService("RunService")
+local Jogadores = game:GetService("Players")
 
-function UILibrary:Initialize()
-    if self.Initialized then return end
-    self.Initialized = true
+function BibliotecaUI:Inicializar()
+    if self.Inicializada then return end
+    self.Inicializada = true
     
-    self:RegisterTheme("Compact", {
-        Primary = Color3.fromRGB(28, 28, 28),
-        Secondary = Color3.fromRGB(40, 40, 40),
-        Accent = Color3.fromRGB(0, 145, 255),
-        TextColor = Color3.fromRGB(240, 240, 240),
-        Font = Enum.Font.GothamMedium,
-        CornerRadius = UDim.new(0, 6),
-        StrokeColor = Color3.fromRGB(60, 60, 60),
-        Scaling = 1,
-        Spacing = 3,
-        ElementHeight = 30,
-        MobileBreakpoint = 600
+    self:RegistrarTema("Padrao", {
+        Principal = Color3.fromRGB(28, 28, 28),
+        Secundario = Color3.fromRGB(40, 40, 40),
+        Destaque = Color3.fromRGB(0, 145, 255),
+        CorTexto = Color3.fromRGB(240, 240, 240),
+        Fonte = Enum.Font.GothamMedium,
+        RaioBorda = UDim.new(0, 6),
+        CorBorda = Color3.fromRGB(60, 60, 60),
+        Escala = 1,
+        Espacamento = 3,
+        AlturaElemento = 28,
+        BreakpointMobile = 600
     })
     
-    self:ApplyTheme("Compact")
-    self:SetupResponsiveSystem()
+    self:AplicarTema("Padrao")
+    self:ConfigurarResponsividade()
 end
 
 --#endregion
 
---#region Theme System
-function UILibrary:RegisterTheme(name, themeData)
-    self.Themes[name] = setmetatable(themeData, {__index = self.Themes["Compact"]})
+--#region Sistema de Temas
+function BibliotecaUI:RegistrarTema(nome, dadosTema)
+    self.Temas[nome] = setmetatable(dadosTema, {__index = self.Temas["Padrao"]})
 end
 
-function UILibrary:ApplyTheme(themeName)
-    self.CurrentTheme = self.Themes[themeName] or self.Themes["Compact"]
-    for _, window in pairs(self.Windows) do
-        window:RefreshTheme(self.CurrentTheme)
+function BibliotecaUI:AplicarTema(nomeTema)
+    self.TemaAtual = self.Temas[nomeTema] or self.Temas["Padrao"]
+    for _, janela in pairs(self.Janelas) do
+        janela:AtualizarTema(self.TemaAtual)
     end
 end
 --#endregion
 
---#region Responsive System
-function UILibrary:SetupResponsiveSystem()
-    local function update()
+--#region Sistema Responsivo
+function BibliotecaUI:ConfigurarResponsividade()
+    local function atualizar()
         local viewport = workspace.CurrentCamera.ViewportSize
-        self.IsMobile = viewport.X <= self.CurrentTheme.MobileBreakpoint
-        self.CurrentTheme.Scaling = math.clamp(math.min(viewport.X/1920, viewport.Y/1080), 0.8, 1.2)
+        self.EhMobile = viewport.X <= self.TemaAtual.BreakpointMobile
+        self.TemaAtual.Escala = math.clamp(math.min(viewport.X/1920, viewport.Y/1080), 0.8, 1.2)
         
-        for _, window in pairs(self.Windows) do
-            window:UpdateLayout()
+        for _, janela in pairs(self.Janelas) do
+            janela:AtualizarLayout()
         end
     end
 
-    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
-    update()
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(atualizar)
+    atualizar()
 end
 --#endregion
 
---#region Window Class
-local Window = {}
-Window.__index = Window
+--#region Classe Janela
+local Janela = {}
+Janela.__index = Janela
 
-function Window.new(title)
-    local self = setmetatable({}, Window)
+function Janela.nova(titulo)
+    local self = setmetatable({}, Janela)
     self.GUI = Instance.new("ScreenGui")
-    self.GUI.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    self.GUI.Parent = Jogadores.LocalPlayer:WaitForChild("PlayerGui")
     
-    self:BuildStructure(title)
-    self:AddControls()
-    UILibrary.Windows[self.GUI] = self
+    self:ConstruirEstrutura(titulo)
+    self:AdicionarControles()
+    BibliotecaUI.Janelas[self.GUI] = self
     return self
 end
 
-function Window:BuildStructure(title)
-    self.MainFrame = Instance.new("Frame")
-    self.MainFrame.Size = UDim2.new(0.3, 0, 0, 40)
-    self.MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-    self.MainFrame.BackgroundTransparency = 1
-    self.MainFrame.Parent = self.GUI
+function Janela:ConstruirEstrutura(titulo)
+    self.FramePrincipal = Instance.new("Frame")
+    self.FramePrincipal.Size = UDim2.new(0.3, 0, 0, 40)
+    self.FramePrincipal.Position = UDim2.new(0.35, 0, 0.3, 0)
+    self.FramePrincipal.BackgroundTransparency = 1
+    self.FramePrincipal.Parent = self.GUI
 
-    self.ContentHolder = Instance.new("ScrollingFrame")
-    self.ContentHolder.Size = UDim2.new(1, 0, 1, -40)
-    self.ContentHolder.Position = UDim2.new(0, 0, 0, 40)
-    self.ContentHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    self.ContentHolder.ScrollBarThickness = 4
-    self.ContentHolder.CanvasSize = UDim2.new()
-    self.ContentHolder.Parent = self.MainFrame
+    self.Conteudo = Instance.new("ScrollingFrame")
+    self.Conteudo.Size = UDim2.new(1, 0, 1, -40)
+    self.Conteudo.Position = UDim2.new(0, 0, 0, 40)
+    self.Conteudo.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    self.Conteudo.ScrollBarThickness = 4
+    self.Conteudo.Parent = self.FramePrincipal
 
     self.Layout = Instance.new("UIListLayout")
-    self.Layout.Padding = UDim.new(0, UILibrary.CurrentTheme.Spacing)
+    self.Layout.Padding = UDim.new(0, BibliotecaUI.TemaAtual.Espacamento)
     self.Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    self.Layout.Parent = self.ContentHolder
+    self.Layout.Parent = self.Conteudo
 
-    self:CreateTitleBar(title)
+    self:CriarCabecalho(titulo)
 end
 
-function Window:CreateTitleBar(title)
-    self.TitleBar = Instance.new("Frame")
-    self.TitleBar.Size = UDim2.new(1, 0, 0, 40)
-    self.TitleBar.BackgroundColor3 = UILibrary.CurrentTheme.Primary
+function Janela:CriarCabecalho(titulo)
+    self.Cabecalho = Instance.new("Frame")
+    self.Cabecalho.Size = UDim2.new(1, 0, 0, 40)
+    self.Cabecalho.BackgroundColor3 = BibliotecaUI.TemaAtual.Principal
     
-    self.TitleLabel = Instance.new("TextLabel")
-    self.TitleLabel.Text = title
-    self.TitleLabel.Size = UDim2.new(1, -80, 1, 0)
-    self.TitleLabel.Position = UDim2.new(0, 10, 0, 0)
-    self.TitleLabel.Font = UILibrary.CurrentTheme.Font
-    self.TitleLabel.TextColor3 = UILibrary.CurrentTheme.TextColor
-    self.TitleLabel.BackgroundTransparency = 1
-    self.TitleLabel.Parent = self.TitleBar
+    self.RotuloTitulo = Instance.new("TextLabel")
+    self.RotuloTitulo.Text = titulo
+    self.RotuloTitulo.Size = UDim2.new(1, -80, 1, 0)
+    self.RotuloTitulo.Position = UDim2.new(0, 10, 0, 0)
+    self.RotuloTitulo.Font = BibliotecaUI.TemaAtual.Fonte
+    self.RotuloTitulo.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    self.RotuloTitulo.BackgroundTransparency = 1
+    self.RotuloTitulo.Parent = self.Cabecalho
     
-    self.TitleBar.Parent = self.MainFrame
+    self.Cabecalho.Parent = self.FramePrincipal
 end
 
-function Window:AddControls()
-    -- Botão de Fechar
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Text = "×"
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0.5, -15)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextColor3 = UILibrary.CurrentTheme.TextColor
-    closeBtn.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    closeBtn.AutoButtonColor = false
+function Janela:AdicionarControles()
+    local botaoFechar = Instance.new("TextButton")
+    botaoFechar.Text = "×"
+    botaoFechar.Size = UDim2.new(0, 30, 0, 30)
+    botaoFechar.Position = UDim2.new(1, -35, 0.5, -15)
+    botaoFechar.Font = Enum.Font.GothamBold
+    botaoFechar.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    botaoFechar.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    botaoFechar.AutoButtonColor = false
     
-    closeBtn.MouseButton1Click:Connect(function()
+    botaoFechar.MouseButton1Click:Connect(function()
         self.GUI.Enabled = false
     end)
     
-    closeBtn.Parent = self.TitleBar
+    botaoFechar.Parent = self.Cabecalho
 end
 
 --#region Componentes
-function Window:AddButton(config)
-    local button = Instance.new("TextButton")
-    button.Text = config.Text or "Button"
-    button.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
-    button.Font = UILibrary.CurrentTheme.Font
-    button.TextColor3 = UILibrary.CurrentTheme.TextColor
-    button.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    button.AutoButtonColor = false
-    button.LayoutOrder = #self.ContentHolder:GetChildren()
-    button.Parent = self.ContentHolder
+function Janela:AdicionarBotao(config)
+    assert(config and type(config) == "table", "Configuração do botão inválida!")
+    assert(config.Funcao, "Função de callback necessária!")
 
-    -- Estilização
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UILibrary.CurrentTheme.CornerRadius
-    corner.Parent = button
+    local botao = Instance.new("TextButton")
+    botao.Text = config.Texto or "Botão"
+    botao.Size = UDim2.new(1, -10, 0, BibliotecaUI.TemaAtual.AlturaElemento)
+    botao.Font = BibliotecaUI.TemaAtual.Fonte
+    botao.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    botao.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    botao.AutoButtonColor = false
+    botao.LayoutOrder = #self.Conteudo:GetChildren()
+    botao.Parent = self.Conteudo
 
-    -- Interatividade
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = UILibrary.CurrentTheme.Accent}):Play()
+    local canto = Instance.new("UICorner")
+    canto.CornerRadius = BibliotecaUI.TemaAtual.RaioBorda
+    canto.Parent = botao
+
+    botao.MouseEnter:Connect(function()
+        ServicoTween:Create(botao, TweenInfo.new(0.15), {
+            BackgroundColor3 = BibliotecaUI.TemaAtual.Destaque
+        }):Play()
     end)
     
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = UILibrary.CurrentTheme.Secondary}):Play()
+    botao.MouseLeave:Connect(function()
+        ServicoTween:Create(botao, TweenInfo.new(0.15), {
+            BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+        }):Play()
     end)
     
-    button.MouseButton1Click:Connect(function()
-        if config.Callback then config.Callback() end
-    end)
+    botao.MouseButton1Click:Connect(config.Funcao)
     
-    return button
+    return botao
 end
 
-function Window:AddSlider(config)
+function Janela:AdicionarSlider(config)
+    assert(config and type(config) == "table", "Configuração do slider inválida!")
+    assert(config.Min and config.Max, "Valores mínimo e máximo necessários!")
+    assert(config.Funcao, "Função de callback necessária!")
+
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
+    container.Size = UDim2.new(1, -10, 0, BibliotecaUI.TemaAtual.AlturaElemento)
     container.BackgroundTransparency = 1
-    container.LayoutOrder = #self.ContentHolder:GetChildren()
-    container.Parent = self.ContentHolder
+    container.LayoutOrder = #self.Conteudo:GetChildren()
+    container.Parent = self.Conteudo
 
-    local track = Instance.new("Frame")
-    track.Size = UDim2.new(1, 0, 0, 4)
-    track.Position = UDim2.new(0, 0, 0.5, -2)
-    track.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    track.Parent = container
+    local trilha = Instance.new("Frame")
+    trilha.Size = UDim2.new(1, 0, 0, 4)
+    trilha.Position = UDim2.new(0, 0, 0.5, -2)
+    trilha.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    trilha.Parent = container
 
-    local thumb = Instance.new("Frame")
-    thumb.Size = UDim2.new(0, 12, 0, 12)
-    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-    thumb.Position = UDim2.new(0, 0, 0.5, 0)
-    thumb.BackgroundColor3 = UILibrary.CurrentTheme.Accent
-    thumb.Parent = track
+    local marcador = Instance.new("Frame")
+    marcador.Size = UDim2.new(0, 12, 0, 12)
+    marcador.AnchorPoint = Vector2.new(0.5, 0.5)
+    marcador.Position = UDim2.new(0, 0, 0.5, 0)
+    marcador.BackgroundColor3 = BibliotecaUI.TemaAtual.Destaque
+    marcador.Parent = trilha
 
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Text = tostring(config.Min or 0)
-    valueLabel.Size = UDim2.new(0, 50, 1, 0)
-    valueLabel.Position = UDim2.new(1, 5, 0, 0)
-    valueLabel.Font = UILibrary.CurrentTheme.Font
-    valueLabel.TextColor3 = UILibrary.CurrentTheme.TextColor
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Parent = container
+    local rotuloValor = Instance.new("TextLabel")
+    rotuloValor.Text = tostring(config.Min or 0)
+    rotuloValor.Size = UDim2.new(0, 50, 1, 0)
+    rotuloValor.Position = UDim2.new(1, 5, 0, 0)
+    rotuloValor.Font = BibliotecaUI.TemaAtual.Fonte
+    rotuloValor.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    rotuloValor.BackgroundTransparency = 1
+    rotuloValor.Parent = container
 
-    UICorner.new(track, UILibrary.CurrentTheme.CornerRadius)
-    UICorner.new(thumb, UDim.new(1, 0))
+    Instance.new("UICorner", trilha).CornerRadius = BibliotecaUI.TemaAtual.RaioBorda
+    Instance.new("UICorner", marcador).CornerRadius = UDim.new(1, 0)
 
-    -- Lógica do Slider
-    local min = config.Min or 0
-    local max = config.Max or 100
-    local value = math.clamp(config.Value or min, min, max)
+    local min = config.Min
+    local max = config.Max
+    local valor = math.clamp(config.Valor or min, min, max)
 
-    local function update(input)
-        local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
-        value = math.floor(min + (relativeX * (max - min)))
-        thumb.Position = UDim2.new(relativeX, 0, 0.5, 0)
-        valueLabel.Text = tostring(value)
-        if config.Callback then config.Callback(value) end
+    local function atualizar(input)
+        local posX = (input.Position.X - trilha.AbsolutePosition.X) / trilha.AbsoluteSize.X
+        valor = math.floor(min + (posX * (max - min)))
+        marcador.Position = UDim2.new(posX, 0, 0.5, 0)
+        rotuloValor.Text = tostring(valor)
+        config.Funcao(valor)
     end
 
-    track.InputBegan:Connect(function(input)
+    trilha.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            update(input)
+            atualizar(input)
         end
     end)
 
     return container
 end
 
-function Window:AddToggle(config)
-    local toggle = Instance.new("TextButton")
-    toggle.Text = config.Text or "Toggle"
-    toggle.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
-    toggle.Font = UILibrary.CurrentTheme.Font
-    toggle.TextColor3 = UILibrary.CurrentTheme.TextColor
-    toggle.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    toggle.AutoButtonColor = false
-    toggle.LayoutOrder = #self.ContentHolder:GetChildren()
-    toggle.Parent = self.ContentHolder
+function Janela:AdicionarAlternador(config)
+    assert(config and type(config) == "table", "Configuração do alternador inválida!")
+    assert(config.Funcao, "Função de callback necessária!")
 
-    local indicator = Instance.new("Frame")
-    indicator.Size = UDim2.new(0, 20, 0, 20)
-    indicator.Position = UDim2.new(1, -25, 0.5, -10)
-    indicator.BackgroundColor3 = UILibrary.CurrentTheme.Primary
-    indicator.Parent = toggle
+    local alternador = Instance.new("TextButton")
+    alternador.Text = config.Texto or "Alternador"
+    alternador.Size = UDim2.new(1, -10, 0, BibliotecaUI.TemaAtual.AlturaElemento)
+    alternador.Font = BibliotecaUI.TemaAtual.Fonte
+    alternador.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    alternador.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    alternador.AutoButtonColor = false
+    alternador.LayoutOrder = #self.Conteudo:GetChildren()
+    alternador.Parent = self.Conteudo
 
-    local state = config.Default or false
-    UICorner.new(toggle, UILibrary.CurrentTheme.CornerRadius)
-    UICorner.new(indicator, UDim.new(1, 0))
+    local indicador = Instance.new("Frame")
+    indicador.Size = UDim2.new(0, 20, 0, 20)
+    indicador.Position = UDim2.new(1, -25, 0.5, -10)
+    indicador.BackgroundColor3 = BibliotecaUI.TemaAtual.Principal
+    indicador.Parent = alternador
 
-    local function update()
-        state = not state
-        TweenService:Create(indicator, TweenInfo.new(0.2), {
-            BackgroundColor3 = state and UILibrary.CurrentTheme.Accent or UILibrary.CurrentTheme.Primary
+    local estado = config.Padrao or false
+    Instance.new("UICorner", alternador).CornerRadius = BibliotecaUI.TemaAtual.RaioBorda
+    Instance.new("UICorner", indicador).CornerRadius = UDim.new(1, 0)
+
+    local function alternar()
+        estado = not estado
+        ServicoTween:Create(indicador, TweenInfo.new(0.2), {
+            BackgroundColor3 = estado and BibliotecaUI.TemaAtual.Destaque or BibliotecaUI.TemaAtual.Principal
         }):Play()
-        if config.Callback then config.Callback(state) end
+        config.Funcao(estado)
     end
 
-    toggle.MouseButton1Click:Connect(update)
-    return toggle
+    alternador.MouseButton1Click:Connect(alternar)
+    return alternador
 end
 
-function Window:AddDropdown(config)
-    local dropdown = Instance.new("TextButton")
-    dropdown.Text = config.Text or "Select..."
-    dropdown.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
-    dropdown.Font = UILibrary.CurrentTheme.Font
-    dropdown.TextColor3 = UILibrary.CurrentTheme.TextColor
-    dropdown.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    dropdown.AutoButtonColor = false
-    dropdown.LayoutOrder = #self.ContentHolder:GetChildren()
-    dropdown.Parent = self.ContentHolder
+function Janela:AdicionarLista(config)
+    assert(config and type(config) == "table", "Configuração da lista inválida!")
+    assert(config.Opcoes, "Lista de opções necessária!")
+    assert(config.Funcao, "Função de callback necessária!")
 
-    local optionsFrame = Instance.new("Frame")
-    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-    optionsFrame.Position = UDim2.new(0, 0, 1, 5)
-    optionsFrame.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
-    optionsFrame.Visible = false
-    optionsFrame.Parent = dropdown
+    local lista = Instance.new("TextButton")
+    lista.Text = config.Texto or "Selecione..."
+    lista.Size = UDim2.new(1, -10, 0, BibliotecaUI.TemaAtual.AlturaElemento)
+    lista.Font = BibliotecaUI.TemaAtual.Fonte
+    lista.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+    lista.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    lista.AutoButtonColor = false
+    lista.LayoutOrder = #self.Conteudo:GetChildren()
+    lista.Parent = self.Conteudo
 
-    UICorner.new(dropdown, UILibrary.CurrentTheme.CornerRadius)
-    UICorner.new(optionsFrame, UILibrary.CurrentTheme.CornerRadius)
+    local painelOpcoes = Instance.new("Frame")
+    painelOpcoes.Size = UDim2.new(1, 0, 0, 0)
+    painelOpcoes.Position = UDim2.new(0, 0, 1, 5)
+    painelOpcoes.BackgroundColor3 = BibliotecaUI.TemaAtual.Secundario
+    painelOpcoes.Visible = false
+    painelOpcoes.Parent = lista
 
-    local isOpen = false
-    local optionHeight = UILibrary.CurrentTheme.ElementHeight - 5
+    Instance.new("UICorner", lista).CornerRadius = BibliotecaUI.TemaAtual.RaioBorda
+    Instance.new("UICorner", painelOpcoes).CornerRadius = BibliotecaUI.TemaAtual.RaioBorda
 
-    local function toggleMenu()
-        isOpen = not isOpen
-        optionsFrame.Visible = isOpen
-        TweenService:Create(optionsFrame, TweenInfo.new(0.2), {
-            Size = isOpen and UDim2.new(1, 0, 0, #config.Options * optionHeight) or UDim2.new(1, 0, 0, 0)
+    local aberto = false
+    local alturaOpcao = BibliotecaUI.TemaAtual.AlturaElemento - 5
+
+    local function alternar()
+        aberto = not aberto
+        painelOpcoes.Visible = aberto
+        ServicoTween:Create(painelOpcoes, TweenInfo.new(0.2), {
+            Size = aberto and UDim2.new(1, 0, 0, #config.Opcoes * alturaOpcao) or UDim2.new(1, 0, 0, 0)
         }):Play()
     end
 
-    for i, option in pairs(config.Options) do
-        local optionBtn = Instance.new("TextButton")
-        optionBtn.Text = option
-        optionBtn.Size = UDim2.new(1, -10, 0, optionHeight)
-        optionBtn.Position = UDim2.new(0, 5, 0, (i-1)*optionHeight)
-        optionBtn.Font = UILibrary.CurrentTheme.Font
-        optionBtn.TextColor3 = UILibrary.CurrentTheme.TextColor
-        optionBtn.BackgroundColor3 = UILibrary.CurrentTheme.Primary
-        optionBtn.AutoButtonColor = false
-        optionBtn.Parent = optionsFrame
+    for i, opcao in pairs(config.Opcoes) do
+        local botaoOpcao = Instance.new("TextButton")
+        botaoOpcao.Text = opcao
+        botaoOpcao.Size = UDim2.new(1, -10, 0, alturaOpcao)
+        botaoOpcao.Position = UDim2.new(0, 5, 0, (i-1)*alturaOpcao)
+        botaoOpcao.Font = BibliotecaUI.TemaAtual.Fonte
+        botaoOpcao.TextColor3 = BibliotecaUI.TemaAtual.CorTexto
+        botaoOpcao.BackgroundColor3 = BibliotecaUI.TemaAtual.Principal
+        botaoOpcao.AutoButtonColor = false
+        botaoOpcao.Parent = painelOpcoes
 
-        optionBtn.MouseButton1Click:Connect(function()
-            dropdown.Text = option
-            toggleMenu()
-            if config.Callback then config.Callback(option) end
+        botaoOpcao.MouseButton1Click:Connect(function()
+            lista.Text = opcao
+            alternar()
+            config.Funcao(opcao)
         end)
     end
 
-    dropdown.MouseButton1Click:Connect(toggleMenu)
-    return dropdown
+    lista.MouseButton1Click:Connect(alternar)
+    return lista
 end
 --#endregion
 
-function Window:UpdateLayout()
-    local theme = UILibrary.CurrentTheme
-    if UILibrary.IsMobile then
-        self.MainFrame.Size = UDim2.new(1, -20, 0, 40)
-        self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-        self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+function Janela:AtualizarLayout()
+    local tema = BibliotecaUI.TemaAtual
+    if BibliotecaUI.EhMobile then
+        self.FramePrincipal.Size = UDim2.new(1, -20, 0, 40)
+        self.FramePrincipal.Position = UDim2.new(0.5, 0, 0.5, 0)
+        self.FramePrincipal.AnchorPoint = Vector2.new(0.5, 0.5)
     else
-        self.MainFrame.Size = UDim2.new(
-            math.clamp(0.3 * theme.Scaling, 0.25, 0.4),
+        self.FramePrincipal.Size = UDim2.new(
+            math.clamp(0.3 * tema.Escala, 0.25, 0.4),
             0,
-            0, self.ContentHolder.AbsoluteContentSize.Y + 40
+            0, self.Conteudo.AbsoluteContentSize.Y + 40
         )
     end
 end
 
-function Window:RefreshTheme(theme)
-    self.TitleBar.BackgroundColor3 = theme.Primary
-    self.TitleLabel.TextColor3 = theme.TextColor
-    self.ContentHolder.BackgroundColor3 = theme.Secondary
+function Janela:AtualizarTema(tema)
+    self.Cabecalho.BackgroundColor3 = tema.Principal
+    self.RotuloTitulo.TextColor3 = tema.CorTexto
+    self.Conteudo.BackgroundColor3 = tema.Secundario
 end
 --#endregion
 
---#region Public API
-function UILibrary:CreateWindow(title)
-    self:Initialize()
-    return Window.new(title)
+--#region API Pública
+function BibliotecaUI:CriarJanela(titulo)
+    self:Inicializar()
+    return Janela.nova(titulo)
 end
 
-function UILibrary:Destroy()
-    for _, window in pairs(self.Windows) do
-        window.GUI:Destroy()
+function BibliotecaUI:DestruirTudo()
+    for _, janela in pairs(self.Janelas) do
+        janela.GUI:Destroy()
     end
-    table.clear(self.Windows)
+    table.clear(self.Janelas)
 end
 --#endregion
 
-return UILibrary
+return BibliotecaUI
