@@ -1,299 +1,354 @@
---[[
-    UILibrary v2.0
-    Biblioteca de UI Roblox com componentes modernos e organização modular
-    Recursos principais:
-    - Sistema de importação seguro
-    - Tratamento de erros detalhado
-    - Componentes responsivos
-    - Suporte móvel nativo
-    - Sistema de temas unificado
-    - Documentação integrada
---]]
+-- UILibrary 4.0
+-- Sistema completo com múltiplos componentes e layout otimizado
 
-local UILibrary = {}
+local UILibrary = {
+    Themes = {},
+    Windows = {},
+    Components = {}
+}
+
+--#region Engine Core
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
--- Verificação de ambiente seguro
-if not RunService:IsClient() then
-    error("A UILibrary deve ser utilizada no lado do cliente!")
-end
-
--- Sistema de erros personalizado
-local function throwError(errorType, message)
-    local errorMessages = {
-        import = "Erro na importação: "..message,
-        component = "Erro no componente: "..message,
-        layout = "Erro de layout: "..message,
-        mobile = "Erro mobile: "..message
-    }
-    error(errorMessages[errorType] or message)
-end
-
--- Sistema de temas avançado
-local Theme = {
-    Primary = Color3.fromRGB(30, 30, 30),
-    Secondary = Color3.fromRGB(50, 50, 50),
-    Accent = Color3.fromRGB(0, 120, 215),
-    TextColor = Color3.fromRGB(255, 255, 255),
-    Font = Enum.Font.Gotham,
-    MobileBreakpoint = 600,
-    TextSize = 14,
-    CornerRadius = UDim.new(0, 8),
-    StrokeColor = Color3.fromRGB(70, 70, 70)
-}
-
--- Componentes base
-local BaseComponents = {
-    createFrame = function(name, size, parent)
-        local frame = Instance.new("Frame")
-        frame.Name = name
-        frame.BackgroundColor3 = Theme.Primary
-        frame.Size = size
-        frame.BorderSizePixel = 0
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = Theme.CornerRadius
-        corner.Parent = frame
-        
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = Theme.StrokeColor
-        stroke.Thickness = 1
-        stroke.Parent = frame
-        
-        if parent then frame.Parent = parent end
-        return frame
-    end,
+function UILibrary:Initialize()
+    if self.Initialized then return end
+    self.Initialized = true
     
-    createText = function(name, text, parent)
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Name = name
-        textLabel.Text = text
-        textLabel.Font = Theme.Font
-        textLabel.TextColor3 = Theme.TextColor
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextSize = Theme.TextSize
-        textLabel.TextXAlignment = Enum.TextXAlignment.Left
-        
-        if parent then textLabel.Parent = parent end
-        return textLabel
-    end
-}
-
---------------------------------------------------
--- Sistema de Notificações Melhorado
---------------------------------------------------
-local Notifications = {
-    ActiveNotifications = {},
-    MaxStack = 5,
-    NotificationLife = 5
-}
-
-function Notifications:show(title, message, options)
-    -- Validação de entrada
-    if not title or not message then
-        throwError("component", "Título e mensagem são obrigatórios para notificações!")
-    end
-    
-    local notification = BaseComponents.createFrame("Notification", UDim2.new(0.9, 0, 0, 80))
-    notification.Position = UDim2.new(0.5, 0, 1, 0)
-    notification.AnchorPoint = Vector2.new(0.5, 1)
-    notification.ZIndex = 100
-    
-    local titleLabel = BaseComponents.createText("Title", title, notification)
-    titleLabel.TextSize = Theme.TextSize + 2
-    titleLabel.TextColor3 = options and options.Color or Theme.Accent
-    titleLabel.Size = UDim2.new(1, -20, 0.4, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 5)
-    
-    local messageLabel = BaseComponents.createText("Message", message, notification)
-    messageLabel.Size = UDim2.new(1, -20, 0.6, 0)
-    messageLabel.Position = UDim2.new(0, 10, 0.4, 0)
-    messageLabel.TextWrapped = true
-    
-    notification.Parent = game.CoreGui
-    table.insert(self.ActiveNotifications, notification)
-    
-    -- Animação de entrada
-    TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(0.5, 0, 1, -10)}):Play()
-    
-    -- Gerenciamento de stack
-    if #self.ActiveNotifications > self.MaxStack then
-        self:remove(self.ActiveNotifications[1])
-    end
-    
-    -- Remoção automática
-    task.delay(self.NotificationLife, function()
-        self:remove(notification)
-    end)
-end
-
-function Notifications:remove(notification)
-    TweenService:Create(notification, TweenInfo.new(0.3), {Position = UDim2.new(0.5, 0, 1, 0)}):Play()
-    task.wait(0.3)
-    notification:Destroy()
-    table.remove(self.ActiveNotifications, table.find(self.ActiveNotifications, notification))
-end
-
---------------------------------------------------
--- Sistema de Janelas Principal
---------------------------------------------------
-function UILibrary:CreateWindow(title)
-    local window = {
-        Elements = {},
-        MobileAdapted = false,
-        ActiveComponents = {}
-    }
-    
-    -- Configuração do GUI principal
-    window.ScreenGui = Instance.new("ScreenGui")
-    window.ScreenGui.Name = "UILibrary_Window"
-    window.ScreenGui.ResetOnSpawn = false
-    window.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    window.ScreenGui.Parent = game.CoreGui
-    
-    -- Container principal
-    window.MainFrame = BaseComponents.createFrame("MainFrame", UDim2.new(0.3, 0, 0.4, 0), window.ScreenGui)
-    window.MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
-    
-    -- Layout responsivo
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, Theme.WindowPadding)
-    listLayout.FillDirection = Enum.FillDirection.Vertical
-    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    listLayout.Parent = window.MainFrame
-    
-    -- Título da janela
-    if title then
-        local titleBar = BaseComponents.createFrame("TitleBar", UDim2.new(1, 0, 0, 30), window.MainFrame)
-        local titleText = BaseComponents.createText("TitleText", title, titleBar)
-        titleText.Size = UDim2.new(1, -20, 1, 0)
-        titleText.Position = UDim2.new(0, 10, 0, 0)
-        titleText.TextXAlignment = Enum.TextXAlignment.Center
-    end
-    
-    -- Sistema de adaptação mobile
-    function window:adaptForMobile()
-        if UserInputService.TouchEnabled and not self.MobileAdapted then
-            self.MainFrame.Size = UDim2.new(1, -20, 1, -20)
-            self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-            self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-            Theme.TextSize = 18
-            self.MobileAdapted = true
-        end
-    end
-    
-    -- Componentes da janela
-    function window:addButton(config)
-        -- Validação de configuração
-        if not config or type(config) ~= "table" then
-            throwError("component", "Configuração do botão inválida!")
-        end
-        
-        local button = BaseComponents.createFrame("Button", UDim2.new(1, -20, 0, 40), self.MainFrame)
-        button.BackgroundColor3 = Theme.Secondary
-        
-        local buttonText = BaseComponents.createText("ButtonText", config.Text or "Botão", button)
-        buttonText.Size = UDim2.new(1, 0, 1, 0)
-        buttonText.TextXAlignment = Enum.TextXAlignment.Center
-        
-        -- Interatividade
-        local hoverTween = TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Accent})
-        local clickTween = TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.95, -20, 0, 38)})
-        
-        button.MouseEnter:Connect(function()
-            hoverTween:Play()
-        end)
-        
-        button.MouseLeave:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Secondary}):Play()
-        end)
-        
-        button.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                clickTween:Play()
-                if config.Callback then config.Callback() end
-            end
-        end)
-        
-        button.InputEnded:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(1, -20, 0, 40)}):Play()
-        end)
-        
-        table.insert(self.ActiveComponents, button)
-        return button
-    end
-    
-    function window:addSlider(config)
-        -- Validação do slider
-        assert(config.Min and config.Max, "Configuração do slider deve conter Min e Max!")
-        assert(config.Callback and type(config.Callback) == "function", "Callback do slider inválido!")
-        
-        local slider = BaseComponents.createFrame("Slider", UDim2.new(1, -20, 0, 60), self.MainFrame)
-        local track = BaseComponents.createFrame("Track", UDim2.new(1, -20, 0, 4), slider)
-        track.Position = UDim2.new(0, 10, 0.5, 0)
-        track.AnchorPoint = Vector2.new(0, 0.5)
-        
-        local thumb = BaseComponents.createFrame("Thumb", UDim2.new(0, 16, 0, 16), track)
-        thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-        thumb.Position = UDim2.new(0, 0, 0.5, 0)
-        thumb.BackgroundColor3 = Theme.Accent
-        
-        local valueLabel = BaseComponents.createText("Value", config.Min, slider)
-        valueLabel.Size = UDim2.new(1, -20, 0.5, 0)
-        valueLabel.Position = UDim2.new(0, 10, 0, 5)
-        
-        -- Lógica de interação
-        local function updateValue(input)
-            local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
-            local value = math.clamp(config.Min + (relativeX * (config.Max - config.Min)), config.Min, config.Max)
-            thumb.Position = UDim2.new(relativeX, 0, 0.5, 0)
-            valueLabel.Text = string.format("%.1f", value)
-            config.Callback(value)
-        end
-        
-        thumb.InputBegan:Connect(function(input)
-            if input.UserInputType.Name:match("Mouse") or input.UserInputType.Name:match("Touch") then
-                updateValue(input)
-            end
-        end)
-        
-        track.InputBegan:Connect(function(input)
-            if input.UserInputType.Name:match("Mouse") or input.UserInputType.Name:match("Touch") then
-                updateValue(input)
-            end
-        end)
-        
-        table.insert(self.ActiveComponents, slider)
-        return slider
-    end
-    
-    function window:destroy()
-        self.ScreenGui:Destroy()
-        table.clear(self)
-    end
-    
-    window:adaptForMobile()
-    return window
-end
-
---------------------------------------------------
--- Sistema de Importação Segura
---------------------------------------------------
-local function safeImport(module)
-    if typeof(module) ~= "table" then
-        throwError("import", "Formato de importação inválido! Use require(script.UILibrary)")
-    end
-    return setmetatable({}, {
-        __index = function(_, key)
-            if module[key] then
-                return module[key]
-            else
-                throwError("import", "Componente '"..key.."' não encontrado!")
-            end
-        end
+    self:RegisterTheme("Compact", {
+        Primary = Color3.fromRGB(28, 28, 28),
+        Secondary = Color3.fromRGB(40, 40, 40),
+        Accent = Color3.fromRGB(0, 145, 255),
+        TextColor = Color3.fromRGB(240, 240, 240),
+        Font = Enum.Font.GothamMedium,
+        CornerRadius = UDim.new(0, 6),
+        StrokeColor = Color3.fromRGB(60, 60, 60),
+        Scaling = 1,
+        Spacing = 3,
+        ElementHeight = 30,
+        MobileBreakpoint = 600
     })
+    
+    self:ApplyTheme("Compact")
+    self:SetupResponsiveSystem()
 end
 
-return safeImport(UILibrary)
+--#endregion
+
+--#region Theme System
+function UILibrary:RegisterTheme(name, themeData)
+    self.Themes[name] = setmetatable(themeData, {__index = self.Themes["Compact"]})
+end
+
+function UILibrary:ApplyTheme(themeName)
+    self.CurrentTheme = self.Themes[themeName] or self.Themes["Compact"]
+    for _, window in pairs(self.Windows) do
+        window:RefreshTheme(self.CurrentTheme)
+    end
+end
+--#endregion
+
+--#region Responsive System
+function UILibrary:SetupResponsiveSystem()
+    local function update()
+        local viewport = workspace.CurrentCamera.ViewportSize
+        self.IsMobile = viewport.X <= self.CurrentTheme.MobileBreakpoint
+        self.CurrentTheme.Scaling = math.clamp(math.min(viewport.X/1920, viewport.Y/1080), 0.8, 1.2)
+        
+        for _, window in pairs(self.Windows) do
+            window:UpdateLayout()
+        end
+    end
+
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
+    update()
+end
+--#endregion
+
+--#region Window Class
+local Window = {}
+Window.__index = Window
+
+function Window.new(title)
+    local self = setmetatable({}, Window)
+    self.GUI = Instance.new("ScreenGui")
+    self.GUI.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+    
+    self:BuildStructure(title)
+    self:AddControls()
+    UILibrary.Windows[self.GUI] = self
+    return self
+end
+
+function Window:BuildStructure(title)
+    self.MainFrame = Instance.new("Frame")
+    self.MainFrame.Size = UDim2.new(0.3, 0, 0, 40)
+    self.MainFrame.Position = UDim2.new(0.35, 0, 0.3, 0)
+    self.MainFrame.BackgroundTransparency = 1
+    self.MainFrame.Parent = self.GUI
+
+    self.ContentHolder = Instance.new("ScrollingFrame")
+    self.ContentHolder.Size = UDim2.new(1, 0, 1, -40)
+    self.ContentHolder.Position = UDim2.new(0, 0, 0, 40)
+    self.ContentHolder.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    self.ContentHolder.ScrollBarThickness = 4
+    self.ContentHolder.CanvasSize = UDim2.new()
+    self.ContentHolder.Parent = self.MainFrame
+
+    self.Layout = Instance.new("UIListLayout")
+    self.Layout.Padding = UDim.new(0, UILibrary.CurrentTheme.Spacing)
+    self.Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    self.Layout.Parent = self.ContentHolder
+
+    self:CreateTitleBar(title)
+end
+
+function Window:CreateTitleBar(title)
+    self.TitleBar = Instance.new("Frame")
+    self.TitleBar.Size = UDim2.new(1, 0, 0, 40)
+    self.TitleBar.BackgroundColor3 = UILibrary.CurrentTheme.Primary
+    
+    self.TitleLabel = Instance.new("TextLabel")
+    self.TitleLabel.Text = title
+    self.TitleLabel.Size = UDim2.new(1, -80, 1, 0)
+    self.TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    self.TitleLabel.Font = UILibrary.CurrentTheme.Font
+    self.TitleLabel.TextColor3 = UILibrary.CurrentTheme.TextColor
+    self.TitleLabel.BackgroundTransparency = 1
+    self.TitleLabel.Parent = self.TitleBar
+    
+    self.TitleBar.Parent = self.MainFrame
+end
+
+function Window:AddControls()
+    -- Botão de Fechar
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Text = "×"
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0.5, -15)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextColor3 = UILibrary.CurrentTheme.TextColor
+    closeBtn.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    closeBtn.AutoButtonColor = false
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        self.GUI.Enabled = false
+    end)
+    
+    closeBtn.Parent = self.TitleBar
+end
+
+--#region Componentes
+function Window:AddButton(config)
+    local button = Instance.new("TextButton")
+    button.Text = config.Text or "Button"
+    button.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
+    button.Font = UILibrary.CurrentTheme.Font
+    button.TextColor3 = UILibrary.CurrentTheme.TextColor
+    button.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    button.AutoButtonColor = false
+    button.LayoutOrder = #self.ContentHolder:GetChildren()
+    button.Parent = self.ContentHolder
+
+    -- Estilização
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UILibrary.CurrentTheme.CornerRadius
+    corner.Parent = button
+
+    -- Interatividade
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = UILibrary.CurrentTheme.Accent}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = UILibrary.CurrentTheme.Secondary}):Play()
+    end)
+    
+    button.MouseButton1Click:Connect(function()
+        if config.Callback then config.Callback() end
+    end)
+    
+    return button
+end
+
+function Window:AddSlider(config)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
+    container.BackgroundTransparency = 1
+    container.LayoutOrder = #self.ContentHolder:GetChildren()
+    container.Parent = self.ContentHolder
+
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, 0, 0, 4)
+    track.Position = UDim2.new(0, 0, 0.5, -2)
+    track.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    track.Parent = container
+
+    local thumb = Instance.new("Frame")
+    thumb.Size = UDim2.new(0, 12, 0, 12)
+    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    thumb.Position = UDim2.new(0, 0, 0.5, 0)
+    thumb.BackgroundColor3 = UILibrary.CurrentTheme.Accent
+    thumb.Parent = track
+
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Text = tostring(config.Min or 0)
+    valueLabel.Size = UDim2.new(0, 50, 1, 0)
+    valueLabel.Position = UDim2.new(1, 5, 0, 0)
+    valueLabel.Font = UILibrary.CurrentTheme.Font
+    valueLabel.TextColor3 = UILibrary.CurrentTheme.TextColor
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Parent = container
+
+    UICorner.new(track, UILibrary.CurrentTheme.CornerRadius)
+    UICorner.new(thumb, UDim.new(1, 0))
+
+    -- Lógica do Slider
+    local min = config.Min or 0
+    local max = config.Max or 100
+    local value = math.clamp(config.Value or min, min, max)
+
+    local function update(input)
+        local relativeX = (input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
+        value = math.floor(min + (relativeX * (max - min)))
+        thumb.Position = UDim2.new(relativeX, 0, 0.5, 0)
+        valueLabel.Text = tostring(value)
+        if config.Callback then config.Callback(value) end
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            update(input)
+        end
+    end)
+
+    return container
+end
+
+function Window:AddToggle(config)
+    local toggle = Instance.new("TextButton")
+    toggle.Text = config.Text or "Toggle"
+    toggle.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
+    toggle.Font = UILibrary.CurrentTheme.Font
+    toggle.TextColor3 = UILibrary.CurrentTheme.TextColor
+    toggle.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    toggle.AutoButtonColor = false
+    toggle.LayoutOrder = #self.ContentHolder:GetChildren()
+    toggle.Parent = self.ContentHolder
+
+    local indicator = Instance.new("Frame")
+    indicator.Size = UDim2.new(0, 20, 0, 20)
+    indicator.Position = UDim2.new(1, -25, 0.5, -10)
+    indicator.BackgroundColor3 = UILibrary.CurrentTheme.Primary
+    indicator.Parent = toggle
+
+    local state = config.Default or false
+    UICorner.new(toggle, UILibrary.CurrentTheme.CornerRadius)
+    UICorner.new(indicator, UDim.new(1, 0))
+
+    local function update()
+        state = not state
+        TweenService:Create(indicator, TweenInfo.new(0.2), {
+            BackgroundColor3 = state and UILibrary.CurrentTheme.Accent or UILibrary.CurrentTheme.Primary
+        }):Play()
+        if config.Callback then config.Callback(state) end
+    end
+
+    toggle.MouseButton1Click:Connect(update)
+    return toggle
+end
+
+function Window:AddDropdown(config)
+    local dropdown = Instance.new("TextButton")
+    dropdown.Text = config.Text or "Select..."
+    dropdown.Size = UDim2.new(1, -10, 0, UILibrary.CurrentTheme.ElementHeight)
+    dropdown.Font = UILibrary.CurrentTheme.Font
+    dropdown.TextColor3 = UILibrary.CurrentTheme.TextColor
+    dropdown.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    dropdown.AutoButtonColor = false
+    dropdown.LayoutOrder = #self.ContentHolder:GetChildren()
+    dropdown.Parent = self.ContentHolder
+
+    local optionsFrame = Instance.new("Frame")
+    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
+    optionsFrame.Position = UDim2.new(0, 0, 1, 5)
+    optionsFrame.BackgroundColor3 = UILibrary.CurrentTheme.Secondary
+    optionsFrame.Visible = false
+    optionsFrame.Parent = dropdown
+
+    UICorner.new(dropdown, UILibrary.CurrentTheme.CornerRadius)
+    UICorner.new(optionsFrame, UILibrary.CurrentTheme.CornerRadius)
+
+    local isOpen = false
+    local optionHeight = UILibrary.CurrentTheme.ElementHeight - 5
+
+    local function toggleMenu()
+        isOpen = not isOpen
+        optionsFrame.Visible = isOpen
+        TweenService:Create(optionsFrame, TweenInfo.new(0.2), {
+            Size = isOpen and UDim2.new(1, 0, 0, #config.Options * optionHeight) or UDim2.new(1, 0, 0, 0)
+        }):Play()
+    end
+
+    for i, option in pairs(config.Options) do
+        local optionBtn = Instance.new("TextButton")
+        optionBtn.Text = option
+        optionBtn.Size = UDim2.new(1, -10, 0, optionHeight)
+        optionBtn.Position = UDim2.new(0, 5, 0, (i-1)*optionHeight)
+        optionBtn.Font = UILibrary.CurrentTheme.Font
+        optionBtn.TextColor3 = UILibrary.CurrentTheme.TextColor
+        optionBtn.BackgroundColor3 = UILibrary.CurrentTheme.Primary
+        optionBtn.AutoButtonColor = false
+        optionBtn.Parent = optionsFrame
+
+        optionBtn.MouseButton1Click:Connect(function()
+            dropdown.Text = option
+            toggleMenu()
+            if config.Callback then config.Callback(option) end
+        end)
+    end
+
+    dropdown.MouseButton1Click:Connect(toggleMenu)
+    return dropdown
+end
+--#endregion
+
+function Window:UpdateLayout()
+    local theme = UILibrary.CurrentTheme
+    if UILibrary.IsMobile then
+        self.MainFrame.Size = UDim2.new(1, -20, 0, 40)
+        self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+        self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    else
+        self.MainFrame.Size = UDim2.new(
+            math.clamp(0.3 * theme.Scaling, 0.25, 0.4),
+            0,
+            0, self.ContentHolder.AbsoluteContentSize.Y + 40
+        )
+    end
+end
+
+function Window:RefreshTheme(theme)
+    self.TitleBar.BackgroundColor3 = theme.Primary
+    self.TitleLabel.TextColor3 = theme.TextColor
+    self.ContentHolder.BackgroundColor3 = theme.Secondary
+end
+--#endregion
+
+--#region Public API
+function UILibrary:CreateWindow(title)
+    self:Initialize()
+    return Window.new(title)
+end
+
+function UILibrary:Destroy()
+    for _, window in pairs(self.Windows) do
+        window.GUI:Destroy()
+    end
+    table.clear(self.Windows)
+end
+--#endregion
+
+return UILibrary
