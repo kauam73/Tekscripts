@@ -1,4 +1,4 @@
-[
+return {
     {
         "nome": "1 Fat Every Second script~🔑❎",
         "Script": "while true do local args = {     [1] = true,     [3] = false }  game:GetService(\"ReplicatedStorage\").Events.COLLECT.COLLECT:InvokeServer(unpack(args''')) end",
@@ -3364,4 +3364,4 @@
         "Script": "loadstring(game:HttpGet(\"https://raw.githubusercontent.com/Joystickplay/psychic-octo-invention/main/yarhm.lua\", false'))()",
         "data": "2025-02-24-13"
     }
-]
+}
